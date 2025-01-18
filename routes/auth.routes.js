@@ -22,5 +22,6 @@ router.put('/reset-password', protect, resetPassword);
 router.post('/verify/password', verifyPassReset);
 router.post('/login', login);
 router.post('/username', checkUsername);
+router.post('/resend/signup/otp', resendSignUp);
 
 module.exports = router;

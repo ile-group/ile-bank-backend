@@ -7,12 +7,19 @@ const sendEmail = require('../mail/index.mail');
 const jwt = require('jsonwebtoken');
 const User = require('../schema/user.schema');
 const Wallet = require('../schema/wallet.schema');
+const { VERIFICATION_EMAIL_TEMPLATE } = require('../mail/template/verifyToken');
+const {
+  PASSWORD_RESET_REQUEST_TEMPLATE
+} = require('../mail/template/passwordReset');
+const {
+  PASSWORD_RESET_SUCCESS_TEMPLATE
+} = require('../mail/template/successfulReset');
 
 /**
  * @author Cyril ogoh <cyrilogoh@gmail.com>
  * @description Registeration using Form Input For `All Account Type`
  * @route `/auth/register`
- * @access Public
+ * @access Publication
  * @type POST
  */
 exports.register = asyncHandler(async (req, res, next) => {
@@ -30,7 +37,7 @@ exports.register = asyncHandler(async (req, res, next) => {
       ? req.body.username.toLowerCase()
       : '';
 
-    const otp = '1234';
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     // const otp = generateOTP(6);
     const checkAccount = await User.findOne({
       email: email
@@ -81,7 +88,11 @@ exports.register = asyncHandler(async (req, res, next) => {
     sendEmail({
       to: email,
       subject: 'One More Step, Verify Your Email',
-      message: `${otp} this is your otp`
+      type: 'verification',
+      message: {
+        otp: otp,
+        name: req.body.name
+      }
     });
 
     res.status(201).json({
@@ -109,7 +120,7 @@ exports.resendSignUp = asyncHandler(async (req, res, next) => {
       ? req.body.email.toLowerCase()
       : '';
 
-    const otp = '1234';
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     // const otp = generateOTP(6);
     const checkAccount = await User.findOne({
       email: email
@@ -138,7 +149,11 @@ exports.resendSignUp = asyncHandler(async (req, res, next) => {
     sendEmail({
       to: email,
       subject: 'One More Step, Verify Your Email',
-      message: `${otp} this is your otp`
+      type: 'verification',
+      message: {
+        otp: otp,
+        name: req.body.name
+      }
     });
 
     res.status(201).json({
@@ -160,40 +175,69 @@ exports.resendSignUp = asyncHandler(async (req, res, next) => {
 exports.verifyOTP = asyncHandler(async (req, res, next) => {
   const { email, otp, username } = req.body;
 
-  // Validate email & password
-  //TODO use Joi
+  // Validate email & otp
   if (!email || !otp || !username) {
     return next(new ErrorResponse('Please provide an email and otp', 400));
   }
 
-  // Check for user
-  const auth = await User.findOne({ email, username }).select('+Token');
+  // Check for user - find by both email and username
+  const auth = await User.findOne({
+    email: email.toLowerCase(),
+    username: username.toLowerCase()
+  }).select('+Token'); // Make sure to select the Token field
 
   if (!auth) {
     return next(new ErrorResponse('Invalid credentials', 401));
   }
+
+  // Add some debug logs
+  console.log('Stored Token:', auth.Token);
+  console.log('Received OTP:', otp);
+  console.log('Token Expiry:', auth.TokenExpire);
+  console.log('Current Time:', Date.now());
+
+  // Check if already verified
   if (auth._verify) {
-    return next(new ErrorResponse('Account is verified, Try logging in', 409));
+    return next(new ErrorResponse('Account is already verified', 409));
   }
+
   // Check if otp matches
   if (auth.Token !== otp) {
-    return next(new ErrorResponse('OTP Is Wrong', 400));
+    return next(new ErrorResponse('Invalid OTP', 400));
   }
+
+  // Check if token has expired
   if (auth.TokenExpire < Date.now()) {
     return next(
-      new ErrorResponse('Token Has Expired, Resend a New Token', 400)
+      new ErrorResponse('OTP has expired, please request a new one', 400)
     );
   }
+
+  // Update user verification status
   await User.updateOne(
-    {
-      email: email
-    },
+    { email: email.toLowerCase() },
     {
       _verify: true,
       Token: null,
       TokenExpire: null
     }
   );
+
+  // Send welcome email
+  try {
+    await sendEmail({
+      to: email,
+      subject: 'Welcome to Our Platform',
+      type: 'welcome',
+      message: {
+        name: auth.name
+      }
+    });
+  } catch (error) {
+    console.error('Welcome email error:', error);
+    // Continue even if welcome email fails
+  }
+
   sendTokenResponse(auth, 200, res);
 });
 
@@ -241,6 +285,14 @@ exports.login = asyncHandler(async (req, res, next) => {
     auth.device = device;
     auth.save();
   }
+  sendEmail({
+    to: email,
+    subject: 'One More Step, Verify Your Email',
+    type: 'welcome',
+    message: {
+      name: req.body.name
+    }
+  });
   sendTokenResponse(auth, 200, res);
 });
 
