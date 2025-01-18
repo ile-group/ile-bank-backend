@@ -7,13 +7,15 @@ const sendEmail = require('../mail/index.mail');
 const jwt = require('jsonwebtoken');
 const User = require('../schema/user.schema');
 const Wallet = require('../schema/wallet.schema');
-const { VERIFICATION_EMAIL_TEMPLATE } = require('../mail/template/verifyToken');
+const {
+  VERIFICATION_EMAIL_TEMPLATE
+} = require('../mail/template/verifyToken.template');
 const {
   PASSWORD_RESET_REQUEST_TEMPLATE
-} = require('../mail/template/passwordReset');
+} = require('../mail/template/passwordreset.template');
 const {
   PASSWORD_RESET_SUCCESS_TEMPLATE
-} = require('../mail/template/successfulReset');
+} = require('../mail/template/successfulreset.template');
 
 /**
  * @author Cyril ogoh <cyrilogoh@gmail.com>

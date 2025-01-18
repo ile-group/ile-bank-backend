@@ -1,23 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const {
-  Banks_Glade,
-  verifyAccount_Glade,
-  disburseToUserGlade,
-  disburseToSaveUserGlade,
+  Banks_List,
+  verifyAccount,
+  disburseToUser,
+  disburseToSavedUser,
   userBank,
   postUserBank,
-  PayStack
+  PayStack,
+  checkBalance,
+  initializeDeposit
 } = require('../controllers/bank.controller');
 const { protect } = require('../guard/protect.guard');
 
+// Protect all routes
 router.use(protect);
-router.get('/', Banks_Glade);
-router.post('/verify', verifyAccount_Glade);
-router.post('/transfer', disburseToUserGlade);
-router.post('/withdraw', disburseToSaveUserGlade);
+
+// Bank listing and verification
+router.get('/', Banks_List);
+router.post('/verify', verifyAccount);
+
+// Transfer routes
+router.post('/transfer', disburseToUser);
+router.post('/withdraw', disburseToSavedUser);
+
+// Bank account management
 router.get('/save', userBank);
 router.post('/save', postUserBank);
-router.post('/webhook/paystack/', PayStack);
 
+// Webhook
+router.post('/webhook/paystack', PayStack);
+
+// Balance
+router.get('/balance', checkBalance);
+
+// Deposit
+router.post('/deposit/initialize', initializeDeposit);
 module.exports = router;

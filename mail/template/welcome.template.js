@@ -12,13 +12,14 @@ const WELCOME_TEMPLATE = (name) => `
   </div>
   <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
     <p>Hello ${name},</p>
-    <p>Welcome to our platform! Your account has been successfully verified.</p>
+    <p>Welcome to ILE BANK! Your account has been verified successfully.</p>
     <p>You can now:</p>
     <ul>
       <li>Send and receive money</li>
       <li>Manage your wallet</li>
       <li>Track your transactions</li>
     </ul>
+    <p>Thank you for choosing ILE BANK! We're excited to have you on board.</p>
     <p>Best regards,<br>Your App Team</p>
   </div>
 </body>
