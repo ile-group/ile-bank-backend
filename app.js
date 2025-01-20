@@ -42,7 +42,8 @@ app.use('/bank', bankRouter);
 app.use('/transaction', transactionRouter);
 app.use('/pin', pinRouter);
 app.use('/notification', notificationRouter);
-
+// Only enable in development
+app.use('/test/bank', require('./routes/bankTest.routes'));
 app.use(errorHandler);
 
 // catch 404 and forward to error handler

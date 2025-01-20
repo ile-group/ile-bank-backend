@@ -8,8 +8,9 @@ const {
 const { WELCOME_TEMPLATE } = require('./template/welcome.template');
 const { TRANSFER_EMAIL_TEMPLATE } = require('./template/transaction.template');
 const { DEPOSIT_EMAIL_TEMPLATE } = require('./template/deposit.template');
-const { WITHDRAWAL_EMAIL_TEMPLATE } = require('./template/withdraw.template')
-const { BANK_SAVED_EMAIL_TEMPLATE } = require('./template/savings.template')
+const { WITHDRAWAL_EMAIL_TEMPLATE } = require('./template/withdraw.template');
+const { BANK_SAVED_EMAIL_TEMPLATE } = require('./template/savings.template');
+const { NEW_ACCOUNT_EMAIL_TEMPLATE } = require('./template/account.template');
 
 const sendEmail = async (option) => {
   console.log('Attempting to send email...');
@@ -73,6 +74,14 @@ const sendEmail = async (option) => {
         option.message.name,
         option.message.bankName,
         option.message.accountNumber
+      );
+      break;
+    case 'newAccount':
+      htmlContent = NEW_ACCOUNT_EMAIL_TEMPLATE(
+        option.message.name,
+        option.message.accountNumber,
+        option.message.bankName,
+        option.message.username,
       );
       break;
     default:

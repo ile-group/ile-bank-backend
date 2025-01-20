@@ -1,6 +1,7 @@
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
 const User = require('../schema/user.schema');
+const bcrypt = require('bcryptjs');
 
 /**
  * @author Cyril ogoh <cyrilogoh@gmail.com>
@@ -58,25 +59,45 @@ exports.updateProfile = asyncHandler(async (req, res, next) => {
  * @type PUT
  */
 exports.updatePassword = asyncHandler(async (req, res, next) => {
-  const { password } = req.body;
+  try {
+    const { currentPassword, newPassword } = req.body;
 
-  const user = await User.findOne({
-    _id: req.user._id
-  });
+    if (!currentPassword || !newPassword) {
+      return next(new ErrorResponse('Please provide both passwords', 400));
+    }
 
-  if (!user) {
-    return next(new ErrorResponse(`User does not exist`, 400));
+    // Get user with password
+    const user = await User.findById(req.user.id).select('+password');
+
+    // Verify current password using bcrypt directly
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      return next(new ErrorResponse('Current password is incorrect', 401));
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await User.findByIdAndUpdate(
+      req.user.id,
+      { password: hashedPassword },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    console.error('Password update error:', error);
+    next(new ErrorResponse('Error updating password', 500));
   }
-  if (password == '' || !password) {
-    return next(new ErrorResponse(`Password Is Not Valid`, 400));
-  }
-  // Set new password
-  user.password = password;
-  await user.save();
-  res.status(200).json({
-    success: true,
-    message: 'password Updated'
-  });
 });
 
 /**
@@ -110,43 +131,40 @@ exports.updateProfileImage = asyncHandler(async (req, res, next) => {
   });
 });
 
-/**
- * @author Cyril ogoh <cyrilogoh@gmail.com>
- * @description Update User profile Image
- * @route `/profile/update/password`
- * @access Private
- * @type PUT
- */
+
 exports.updatePhone = asyncHandler(async (req, res, next) => {
-  const { phone, country } = req.body;
-  if (!phone || !country) {
-    return next(
-      new ErrorResponse('Phone and Country Code Is Required, Try Again', 400)
+  try {
+    const { phone, countryCode } = req.body;
+
+    // Validate inputs
+    if (!phone || !countryCode) {
+      return next(
+        new ErrorResponse('Phone and Country Code Is Required, Try Again', 400)
+      );
+    }
+
+    // Format phone number with country code
+    const formattedPhone = `${countryCode}${phone}`;
+
+    // Update user's phone
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { phone: formattedPhone },
+      { new: true }
     );
+
+    res.status(200).json({
+      success: true,
+      message: 'Phone number updated successfully',
+      data: {
+        phone: user.phone
+      }
+    });
+  } catch (error) {
+    next(error);
   }
-
-  let incoming = {
-    phone,
-    country_code: country
-  };
-
-  const data = await User.updateOne({ _id: req.user._id }, incoming).select({
-    _id: 0
-  });
-
-  res.status(201).json({
-    success: true,
-    data: data
-  });
 });
 
-/**
- * @author Cyril ogoh <cyrilogoh@gmail.com>
- * @description Update User profile Image
- * @route `/profile/upgrade`
- * @access Private
- * @type POST
- */
 exports.upgrade = asyncHandler(async (req, res, next) => {
   res.status(201).json({
     success: true,

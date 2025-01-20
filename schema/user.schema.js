@@ -111,7 +111,13 @@ const userSchema = new mongoose.Schema(
     Token: { type: String, select: false },
     TokenExpire: Number,
     resetPasswordToken: { type: String, select: false },
-    resetPasswordExpire: Number
+    resetPasswordExpire: Number,
+
+    accountNumber: {
+      type: String,
+      unique: true,
+      sparse: true // Allows null values while maintaining uniqueness
+    }
   },
   {
     timestamps: true
@@ -126,10 +132,32 @@ userSchema.pre('save', async function (next) {
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+
+  if (!this.accountNumber) {
+    // Generate 10-digit account number
+    const prefix = '25'; // Your bank's prefix
+    const random = Math.floor(Math.random() * 100000000)
+      .toString()
+      .padStart(8, '0');
+    this.accountNumber = prefix + random;
+
+    // Ensure uniqueness
+    const exists = await this.constructor.findOne({
+      accountNumber: this.accountNumber
+    });
+    if (exists) {
+      return next(
+        new Error('Account number generation failed, please try again')
+      );
+    }
+  }
+  next();
 });
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = function (enteredPassword) {
+    console.log('Comparing passwords');
+
   return bcrypt.compare(enteredPassword, this.password);
 };
 

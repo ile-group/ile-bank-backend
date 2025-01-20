@@ -40,7 +40,6 @@ exports.register = asyncHandler(async (req, res, next) => {
       : '';
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    // const otp = generateOTP(6);
     const checkAccount = await User.findOne({
       email: email
     });
@@ -186,7 +185,7 @@ exports.verifyOTP = asyncHandler(async (req, res, next) => {
   const auth = await User.findOne({
     email: email.toLowerCase(),
     username: username.toLowerCase()
-  }).select('+Token'); // Make sure to select the Token field
+  }).select('+Token');
 
   if (!auth) {
     return next(new ErrorResponse('Invalid credentials', 401));
@@ -197,6 +196,24 @@ exports.verifyOTP = asyncHandler(async (req, res, next) => {
   console.log('Received OTP:', otp);
   console.log('Token Expiry:', auth.TokenExpire);
   console.log('Current Time:', Date.now());
+
+  // Generate unique account number
+  let accountNumber;
+  let isUnique = false;
+
+  while (!isUnique) {
+    const prefix = '25';
+    const random = Math.floor(Math.random() * 100000000)
+      .toString()
+      .padStart(8, '0');
+    accountNumber = prefix + random;
+
+    // Check if account number already exists
+    const existingUser = await User.findOne({ accountNumber });
+    if (!existingUser) {
+      isUnique = true;
+    }
+  }
 
   // Check if already verified
   if (auth._verify) {
@@ -215,28 +232,42 @@ exports.verifyOTP = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Update user verification status
+  // Update user verification status and add account number
   await User.updateOne(
     { email: email.toLowerCase() },
     {
       _verify: true,
       Token: null,
-      TokenExpire: null
+      TokenExpire: null,
+      accountNumber: accountNumber
     }
   );
 
   // Send welcome email
   try {
-    await sendEmail({
-      to: email,
-      subject: 'Welcome to Our Platform',
-      type: 'welcome',
-      message: {
-        name: auth.name
-      }
-    });
+    await Promise.all([
+      sendEmail({
+        to: email,
+        subject: 'Welcome to Our Platform',
+        type: 'welcome',
+        message: {
+          name: auth.name
+        }
+      }),
+      sendEmail({
+        to: email,
+        subject: 'Your Account Details',
+        type: 'newAccount',
+        message: {
+          name: auth.name,
+          accountNumber: accountNumber,
+          bankName: 'Ile Bank',
+          username: username
+        }
+      })
+    ]);
   } catch (error) {
-    console.error('Welcome email error:', error);
+    console.error('Email sending error:', error);
     // Continue even if welcome email fails
   }
 
