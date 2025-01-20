@@ -6,6 +6,6 @@ const { protect } = require('../guard/protect.guard');
 router.use(protect);
 
 router.post('/', updateNew);
-router.put('/', updateNew);
+router.put('/update', updateNew);
 
 module.exports = router;

@@ -14,8 +14,8 @@ exports.confirm = asyncHandler(async (req, res, next) => {
   const { pin } = req.body;
   const data = await User.findOne({ _id: req.user._id });
   const isTrue = await data.matchTransactionPin(pin);
-  if(!isTrue){
-     return next(new ErrorResponse('Invalid Pin', 401));
+  if (!isTrue) {
+    return next(new ErrorResponse('Invalid Pin', 401));
   }
   res.status(200).json({
     success: true,
@@ -25,35 +25,48 @@ exports.confirm = asyncHandler(async (req, res, next) => {
 
 /**
  * @author Cyril ogoh <cyrilogoh@gmail.com>
- * @description Update The User
+ * @description Create or Update PIN
  * @route `/pin/`
  * @access Private
  * @type PUT
  */
 exports.updateNew = asyncHandler(async (req, res, next) => {
-  const { pin } = req.body;
-  if (!pin.length == 4) {
-    return next(new ErrorResponse('INVALID PIN', 404));
-  }
-  const data = await User.findOne({ _id: req.user._id });
+  const { currentPin, newPin } = req.body;
 
-  if (!data) {
+  // Validate new PIN
+  if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+    return next(new ErrorResponse('PIN must be exactly 4 digits', 400));
+  }
+
+  const user = await User.findOne({ _id: req.user._id }).select('+pin');
+
+  if (!user) {
     return next(new ErrorResponse('User Not Found', 404));
   }
 
-  if (data.pin) {
-    return next(new ErrorResponse('Pin Is Set Already', 400));
+  // If user already has a PIN, verify current PIN
+  if (user.pin) {
+    if (!currentPin) {
+      return next(new ErrorResponse('Current PIN is required', 400));
+    }
+
+    const isPinValid = await user.matchTransactionPin(currentPin);
+    if (!isPinValid) {
+      return next(new ErrorResponse('Current PIN is incorrect', 401));
+    }
   }
+
+  // Hash and save new PIN
   const salt = await bcrypt.genSalt(10);
-  const hashPin = await bcrypt.hash(pin, salt);
+  const hashPin = await bcrypt.hash(newPin, salt);
 
-  data.pin = hashPin;
-
-  await data.save({
+  user.pin = hashPin;
+  await user.save({
     validateBeforeSave: true
   });
+
   res.status(200).json({
     success: true,
-    data: data
+    message: user.pin ? 'PIN updated successfully' : 'PIN created successfully'
   });
 });
