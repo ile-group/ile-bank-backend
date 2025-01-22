@@ -9,7 +9,13 @@ const {
   postUserBank,
   PayStack,
   checkBalance,
-  initializeDeposit
+  initializeDeposit,
+  transferToUser,
+  paystackWebhook,
+  simulateDeposit,
+  savingsLock,
+  getSavings,
+  breakSavings
 } = require('../controllers/bank.controller');
 const { protect } = require('../guard/protect.guard');
 
@@ -33,7 +39,15 @@ router.post('/webhook/paystack', PayStack);
 
 // Balance
 router.get('/balance', checkBalance);
+router.post('/transfer-internal', transferToUser);
 
 // Deposit
 router.post('/deposit/initialize', initializeDeposit);
+router.post('/webhook/paystack', paystackWebhook);
+
+router.post('/simulate-deposit', simulateDeposit);
+router.post('/savings-lock', savingsLock);
+router.post('/break-savings', breakSavings);
+router.get('/savings', getSavings);
+
 module.exports = router;

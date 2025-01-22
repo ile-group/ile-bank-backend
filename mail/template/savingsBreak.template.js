@@ -1,21 +1,26 @@
-exports.BANK_SAVED_EMAIL_TEMPLATE = (name, amount, duration) => `
+exports.SAVINGS_BREAK_EMAIL_TEMPLATE = (
+  name,
+  amount,
+  penaltyAmount,
+  finalAmount
+) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Savings Created</title>
+  <title>Savings Break</title>
   <style>
     .transaction-box {
       background-color: #f8f9fa;
       border-radius: 8px;
       padding: 15px;
       margin: 20px 0;
-      border-left: 4px solid #4CAF50;
+      border-left: 4px solid #dc3545;
     }
     .amount {
       font-size: 24px;
-      color: #4CAF50;
+      color: #dc3545;
       font-weight: bold;
       margin: 10px 0;
     }
@@ -29,9 +34,9 @@ exports.BANK_SAVED_EMAIL_TEMPLATE = (name, amount, duration) => `
   </style>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+  <div style="background: linear-gradient(to right, #dc3545, #c82333); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 24px;">
-      Savings Created Successfully
+      Savings Break Completed
     </h1>
   </div>
   
@@ -40,24 +45,33 @@ exports.BANK_SAVED_EMAIL_TEMPLATE = (name, amount, duration) => `
     
     <div class="transaction-box">
       <div class="amount">
-        ₦${(amount || 0).toLocaleString()}
+        ₦${(finalAmount || 0).toLocaleString()}
       </div>
       <p style="margin: 5px 0; color: #666;">
-        Locked for ${duration}
+        Amount received after penalty
       </p>
     </div>
 
     <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
-      <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Savings Details</h3>
+      <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Break Details</h3>
       
       <div class="detail-item">
-        <strong>Amount Locked:</strong> 
+        <strong>Original Amount:</strong> 
         <span style="float: right;">₦${(amount || 0).toLocaleString()}</span>
       </div>
       
       <div class="detail-item">
-        <strong>Duration:</strong>
-        <span style="float: right;">${duration}</span>
+        <strong>Penalty Amount:</strong>
+        <span style="float: right;">₦${(
+          penaltyAmount || 0
+        ).toLocaleString()}</span>
+      </div>
+      
+      <div class="detail-item">
+        <strong>Final Amount:</strong>
+        <span style="float: right;">₦${(
+          finalAmount || 0
+        ).toLocaleString()}</span>
       </div>
       
       <div class="detail-item">
@@ -67,11 +81,11 @@ exports.BANK_SAVED_EMAIL_TEMPLATE = (name, amount, duration) => `
     </div>
 
     <div style="background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-top: 20px; font-size: 14px;">
-      Your savings will be locked until the duration is complete.
+      Your savings has been broken early and a penalty fee was applied.
     </div>
 
     <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-      <p>Thank you for saving with us!</p>
+      <p>Thank you for using our service!</p>
       <p style="margin: 0;">Best regards,<br>Your App Team</p>
     </div>
   </div>

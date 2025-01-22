@@ -6,11 +6,14 @@ const {
   PASSWORD_RESET_REQUEST_TEMPLATE
 } = require('./template/passwordreset.template');
 const { WELCOME_TEMPLATE } = require('./template/welcome.template');
-const { TRANSFER_EMAIL_TEMPLATE } = require('./template/transaction.template');
+const { TRANSFER_EMAIL_TEMPLATE } = require('./template/transfer.template');
 const { DEPOSIT_EMAIL_TEMPLATE } = require('./template/deposit.template');
 const { WITHDRAWAL_EMAIL_TEMPLATE } = require('./template/withdraw.template');
 const { BANK_SAVED_EMAIL_TEMPLATE } = require('./template/savings.template');
 const { NEW_ACCOUNT_EMAIL_TEMPLATE } = require('./template/account.template');
+const {
+  SAVINGS_BREAK_EMAIL_TEMPLATE
+} = require('./template/savingsBreak.template');
 
 const sendEmail = async (option) => {
   console.log('Attempting to send email...');
@@ -51,14 +54,18 @@ const sendEmail = async (option) => {
         option.message.name,
         option.message.amount,
         option.message.accountNumber,
-        option.message.bankName
+        option.message.bankName,
+        option.message.reference,
+        option.message.date,
+        option.message.senderName
       );
       break;
     case 'deposit':
       htmlContent = DEPOSIT_EMAIL_TEMPLATE(
         option.message.name,
         option.message.amount,
-        option.message.reference
+        option.message.reference,
+        option.message.date
       );
       break;
     case 'withdrawal':
@@ -66,22 +73,32 @@ const sendEmail = async (option) => {
         option.message.name,
         option.message.amount,
         option.message.accountNumber,
-        option.message.bankName
+        option.message.bankName,
+        option.message.reference,
+        option.message.date,
+        option.message.recipientName
       );
       break;
     case 'bankSaved':
       htmlContent = BANK_SAVED_EMAIL_TEMPLATE(
         option.message.name,
-        option.message.bankName,
-        option.message.accountNumber
+        option.message.amount,
+        option.message.duration
+      );
+      break;
+    case 'savingsBreak':
+      htmlContent = SAVINGS_BREAK_EMAIL_TEMPLATE(
+        option.message.name,
+        option.message.amount,
+        option.message.penaltyAmount,
+        option.message.finalAmount
       );
       break;
     case 'newAccount':
       htmlContent = NEW_ACCOUNT_EMAIL_TEMPLATE(
         option.message.name,
         option.message.accountNumber,
-        option.message.bankName,
-        option.message.username,
+        option.message.username
       );
       break;
     default:
@@ -97,7 +114,7 @@ const sendEmail = async (option) => {
       from: `"${process.env.MAIL_NAME}" <${process.env.MAIL_USER}>`,
       to: option.to,
       subject: option.subject,
-      html: htmlContent // Make sure we're sending the HTML content
+      html: option.html || htmlContent
     });
     console.log('Email sent:', info.response);
   } catch (error) {

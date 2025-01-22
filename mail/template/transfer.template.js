@@ -1,29 +1,109 @@
-
-const TRANSFER_EMAIL_TEMPLATE = (name, amount, accountNumber, bankName) => `
+exports.TRANSFER_EMAIL_TEMPLATE = (
+  name,
+  amount,
+  accountNumber,
+  bankName,
+  reference,
+  date,
+  senderName = '',
+) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transfer Notification</title>
+  <title>Credit Alert</title>
+  <style>
+    .transaction-box {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      border-left: 4px solid #4CAF50;  /* Green border */
+    }
+    .amount {
+      font-size: 24px;
+      color: #4CAF50;  /* Green text */
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .detail-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .detail-item:last-child {
+      border-bottom: none;
+    }
+    .footer {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">Transfer Successful</h1>
+  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">
+      Credit Alert
+    </h1>
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px;">
-    <p>Hello ${name},</p>
-    <p>Your transfer of ₦${amount.toLocaleString()} has been processed successfully.</p>
-    <p>Recipient Details:</p>
-    <ul>
-      <li>Bank: ${bankName}</li>
-      <li>Account Number: ${accountNumber}</li>
-    </ul>
-    <p>If you didn't authorize this transfer, please contact support immediately.</p>
-    <p>Best regards,<br>Your App Team</p>
+  
+  <div style="background-color: #ffffff; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <p style="font-size: 16px;">Hello ${name},</p>
+    
+    <div class="transaction-box">
+    
+      <p style="margin: 5px 0; color: #666;">
+        Transfer from ${senderName}
+      </p>
+      
+    </div>
+
+    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+      <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Transaction Details</h3>
+      
+      <div class="detail-item">
+        <strong>Transaction Type:</strong> 
+        <span style="float: right;">Credit</span>
+      </div>
+      
+      <div class="detail-item">
+        <strong>Bank:</strong> 
+        <span style="float: right;">${bankName}</span>
+      </div>
+      
+      <div class="detail-item">
+        <strong>Sender Account:</strong>
+        <span style="float: right;">${accountNumber}</span>
+      </div>
+      
+      <div class="detail-item">
+        <strong>Sender Name:</strong>
+        <span style="float: right;">${senderName}</span>
+      </div>
+      
+      <div class="detail-item">
+        <strong>Reference:</strong>
+        <span style="float: right;">${reference}</span>
+      </div>
+      
+      <div class="detail-item">
+        <strong>Date:</strong>
+        <span style="float: right;">${new Date(date).toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div style="background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-top: 20px; font-size: 14px;">
+      If you didn't authorize this transaction, please contact support immediately.
+    </div>
+
+    <div class="footer">
+      <p>Thank you for choosing our service!</p>
+      <p style="margin: 0;">Best regards,<br>Your App Team</p>
+    </div>
   </div>
 </body>
 </html>
 `;
-
-module.exports = TRANSFER_EMAIL_TEMPLATE;
