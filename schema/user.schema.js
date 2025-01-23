@@ -63,8 +63,10 @@ const userSchema = new mongoose.Schema(
 
     username: {
       type: String,
-      required: [true, 'Please a Username is Required'],
-      trim: true
+      required: [true, 'Please add a username'],
+      unique: true,
+      trim: true,
+      match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers and underscores']
     },
 
     phone: {

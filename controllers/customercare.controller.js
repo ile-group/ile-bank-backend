@@ -1,7 +1,7 @@
 const CustomerCare = require('../schema/customercare.schema');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
-const { sendEmail } = require('../mail');
+const sendEmail = require('../mail/index.mail');
 
 // Create a new support ticket
 exports.createTicket = asyncHandler(async (req, res, next) => {

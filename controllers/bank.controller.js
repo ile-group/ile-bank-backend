@@ -484,69 +484,116 @@ exports.paystackWebhook = asyncHandler(async (req, res, next) => {
 // Transfer to another user using username or account number
 exports.transferToUser = asyncHandler(async (req, res, next) => {
   const { amount, recipient, type } = req.body;
+  console.log('Transfer request:', { amount, recipient, type });
 
   if (!amount || amount <= 0) {
-    return next(new ErrorResponse('Invalid amount', 400));
+    return next(new ErrorResponse('Please provide a valid amount', 400));
   }
 
-  // Find recipient
-  const recipientUser = await User.findOne(
-    type === 'username'
-      ? { username: recipient.toLowerCase() }
-      : { accountNumber: recipient }
-  );
+  if (!recipient) {
+    return next(
+      new ErrorResponse(
+        'Please provide recipient username or account number',
+        400
+      )
+    );
+  }
+
+  // Find recipient based on type
+  let recipientUser;
+  if (type === 'accountNumber') {
+    console.log('Searching by account number:', recipient);
+    recipientUser = await User.findOne({ accountNumber: recipient });
+    console.log('Found recipient:', recipientUser);
+  } else if (type === 'username') {
+    recipientUser = await User.findOne({ username: recipient.toLowerCase() });
+  } else {
+    return next(
+      new ErrorResponse(
+        'Invalid transfer type. Use "accountNumber" or "username"',
+        400
+      )
+    );
+  }
 
   if (!recipientUser) {
     return next(new ErrorResponse('Recipient not found', 404));
   }
 
-  // Check sender's wallet
+  // Can't transfer to self
+  if (recipientUser._id.toString() === req.user._id.toString()) {
+    return next(new ErrorResponse('Cannot transfer to yourself', 400));
+  }
+
   const senderWallet = await Wallet.findOne({ _id: req.user._wallet });
   if (!senderWallet || senderWallet.amount < amount) {
     return next(new ErrorResponse('Insufficient funds', 400));
   }
 
-  let session;
-  try {
-    session = await mongoose.startSession();
-    await session.withTransaction(async () => {
-      const reference = `TRF-${Date.now()}`;
-      const transactionDate = new Date();
+  const recipientWallet = await Wallet.findOne({ _id: recipientUser._wallet });
+  if (!recipientWallet) {
+    return next(new ErrorResponse('Recipient wallet not found', 404));
+  }
 
-      // Create transaction histories
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      // Update sender's wallet
+      const updatedSenderWallet = await Wallet.findOneAndUpdate(
+        { _id: req.user._wallet },
+        { $inc: { amount: -amount } },
+        { new: true, session }
+      );
+
+      // Update recipient's wallet
+      const updatedRecipientWallet = await Wallet.findOneAndUpdate(
+        { _id: recipientUser._wallet },
+        { $inc: { amount: amount } },
+        { new: true, session }
+      );
+
+      const transactionDate = new Date();
+      const reference = `TRF-${Date.now()}`;
+
+      // Create transaction histories with initor field
       await History.create(
         [
           {
             _user: req.user._id,
             _wallet: req.user._wallet,
             amount,
+            type: 'debit',
             status: 'Completed',
             date: transactionDate,
-            from: 'Internal Transfer',
-            initor: 'Debit',
+            from: 'Transfer',
+            detail: `Transfer to ${
+              recipientUser.username || recipientUser.accountnumber
+            }`,
             reference,
-            detail: `Transfer to ${recipientUser.name}`,
-            bank: { name: 'ILE Bank' }
+            bank: { name: 'ILE Bank' },
+            initor: req.user._id // Add initor field
           },
           {
             _user: recipientUser._id,
             _wallet: recipientUser._wallet,
             amount,
+            type: 'credit',
             status: 'Completed',
             date: transactionDate,
-            from: 'Internal Transfer',
-            initor: 'Credit',
+            from: 'Transfer',
+            detail: `Transfer from ${
+              req.user.username || req.user.accountnumber
+            }`,
             reference,
-            detail: `Transfer from ${req.user.name}`,
-            bank: { name: 'ILE Bank' }
+            bank: { name: 'ILE Bank' },
+            initor: req.user._id // Add initor field
           }
         ],
         { session }
       );
 
-      // Send email notifications
+      // Send notifications
       await Promise.all([
-        // Sender notification (Debit Alert)
         sendEmail({
           to: req.user.email,
           subject: 'Debit Alert',
@@ -558,10 +605,12 @@ exports.transferToUser = asyncHandler(async (req, res, next) => {
             bankName: 'ILE Bank',
             reference: reference,
             date: transactionDate,
-            recipientName: recipientUser.name
+            recipientName:
+              recipientUser.username || recipientUser.accountnumber,
+            reference,
+            date: transactionDate
           }
         }),
-        // Recipient notification (Credit Alert)
         sendEmail({
           to: recipientUser.email,
           subject: 'Credit Alert',
@@ -573,11 +622,13 @@ exports.transferToUser = asyncHandler(async (req, res, next) => {
             bankName: 'ILE Bank',
             reference: reference,
             date: transactionDate,
-            senderName: req.user.name
+
+            senderName: req.user.username || req.user.accountnumber,
+            reference,
+            date: transactionDate
           }
         })
       ]);
-
       // Create in-app notifications
       await Notification.create(
         [
@@ -609,18 +660,17 @@ exports.transferToUser = asyncHandler(async (req, res, next) => {
         success: true,
         message: 'Transfer successful',
         data: {
-          reference,
           amount,
-          recipient: recipientUser.name
+          recipient: recipientUser.username || recipientUser.accountnumber,
+          reference,
+          newBalance: updatedSenderWallet.amount
         }
       });
     });
   } catch (error) {
     next(error);
   } finally {
-    if (session) {
-      session.endSession();
-    }
+    session.endSession();
   }
 });
 

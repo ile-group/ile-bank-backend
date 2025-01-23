@@ -12,6 +12,13 @@ const { WITHDRAWAL_EMAIL_TEMPLATE } = require('./template/withdraw.template');
 const { BANK_SAVED_EMAIL_TEMPLATE } = require('./template/savings.template');
 const { NEW_ACCOUNT_EMAIL_TEMPLATE } = require('./template/account.template');
 const {
+  TICKET_CREATED_EMAIL_TEMPLATE
+} = require('./template/ticketCreated.template');
+const {
+  TICKET_UPDATED_EMAIL_TEMPLATE
+} = require('./template/ticketUpdated.template');
+
+const {
   SAVINGS_BREAK_EMAIL_TEMPLATE
 } = require('./template/savingsBreak.template');
 
@@ -47,7 +54,11 @@ const sendEmail = async (option) => {
       );
       break;
     case 'welcome':
-      htmlContent = WELCOME_TEMPLATE(option.message.name);
+      htmlContent = WELCOME_TEMPLATE(
+        option.message.name,
+        option.message.username, // Add username parameter
+        option.message.accountNumber
+      );
       break;
     case 'transfer':
       htmlContent = TRANSFER_EMAIL_TEMPLATE(
@@ -77,6 +88,23 @@ const sendEmail = async (option) => {
         option.message.reference,
         option.message.date,
         option.message.recipientName
+      );
+      break;
+    case 'ticketCreated':
+      htmlContent = TICKET_CREATED_EMAIL_TEMPLATE(
+        option.message.name,
+        option.message.ticketId,
+        option.message.subject,
+        option.message.message
+      );
+      break;
+
+    case 'ticketUpdated':
+      htmlContent = TICKET_UPDATED_EMAIL_TEMPLATE(
+        option.message.name,
+        option.message.ticketId,
+        option.message.status,
+        option.message.response
       );
       break;
     case 'bankSaved':

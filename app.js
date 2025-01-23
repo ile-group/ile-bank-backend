@@ -15,6 +15,7 @@ const bankRouter = require('./routes/bank.routes');
 const pinRouter = require('./routes/pin.routes');
 const transactionRouter = require('./routes/transaction.routes');
 const notificationRouter = require('./routes/notification.routes');
+const customerCareRoutes = require('./routes/customercare.routes');
 
 const errorHandler = require('./middleware/error.middleware');
 
@@ -42,8 +43,8 @@ app.use('/bank', bankRouter);
 app.use('/transaction', transactionRouter);
 app.use('/pin', pinRouter);
 app.use('/notification', notificationRouter);
-// Only enable in development
-app.use('/test/bank', require('./routes/bankTest.routes'));
+app.use('/support', customerCareRoutes);
+
 app.use(errorHandler);
 
 // catch 404 and forward to error handler

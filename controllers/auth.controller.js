@@ -32,20 +32,20 @@ exports.register = asyncHandler(async (req, res, next) => {
     if (!req.body.password) {
       return next(new ErrorResponse('Password Is Required', 403));
     }
-    const email = req.body.email.toLowerCase()
-      ? req.body.email.toLowerCase()
-      : '';
-    const username = req.body.username.toLowerCase()
-      ? req.body.username.toLowerCase()
-      : '';
+    const email = req.body.email.toLowerCase();
+    const username = req.body.username.toLowerCase();
+
+    // Check for spaces in username
+    if (!username || username.includes(' ')) {
+      return next(new ErrorResponse('Username cannot contain spaces', 400));
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const checkAccount = await User.findOne({
-      email: email
-    });
 
-    const checkUser = await User.findOne({
-      username: username
+    // Check if email exists and is verified
+    const checkAccount = await User.findOne({
+      email: email,
+      _verify: true // Only block if account exists AND is verified
     });
 
     if (checkAccount) {
@@ -56,6 +56,11 @@ exports.register = asyncHandler(async (req, res, next) => {
         )
       );
     }
+
+    // Check if username exists
+    const checkUser = await User.findOne({
+      username: username
+    });
 
     if (checkUser) {
       return next(
@@ -248,21 +253,12 @@ exports.verifyOTP = asyncHandler(async (req, res, next) => {
     await Promise.all([
       sendEmail({
         to: email,
-        subject: 'Welcome to Our Platform',
+        subject: 'Welcome to Our Bank!',
         type: 'welcome',
         message: {
-          name: auth.name
-        }
-      }),
-      sendEmail({
-        to: email,
-        subject: 'Your Account Details',
-        type: 'newAccount',
-        message: {
           name: auth.name,
-          accountNumber: accountNumber,
-          bankName: 'Ile Bank',
-          username: username
+          username: auth.username,
+          accountNumber: accountNumber
         }
       })
     ]);
@@ -318,14 +314,14 @@ exports.login = asyncHandler(async (req, res, next) => {
     auth.device = device;
     auth.save();
   }
-  sendEmail({
-    to: email,
-    subject: 'One More Step, Verify Your Email',
-    type: 'welcome',
-    message: {
-      name: req.body.name
-    }
-  });
+  // sendEmail({
+  //   to: email,
+  //   subject: 'One More Step, Verify Your Email',
+  //   type: 'welcome',
+  //   message: {
+  //     name: req.body.name
+  //   }
+  // });
   sendTokenResponse(auth, 200, res);
 });
 
