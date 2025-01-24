@@ -16,6 +16,7 @@ const pinRouter = require('./routes/pin.routes');
 const transactionRouter = require('./routes/transaction.routes');
 const notificationRouter = require('./routes/notification.routes');
 const customerCareRoutes = require('./routes/customercare.routes');
+const aiRoutes = require('./routes/ai.routes');
 
 const errorHandler = require('./middleware/error.middleware');
 
@@ -44,6 +45,7 @@ app.use('/transaction', transactionRouter);
 app.use('/pin', pinRouter);
 app.use('/notification', notificationRouter);
 app.use('/support', customerCareRoutes);
+app.use('/ai', aiRoutes);
 
 app.use(errorHandler);
 

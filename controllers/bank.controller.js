@@ -815,7 +815,7 @@ exports.savingsLock = asyncHandler(async (req, res, next) => {
         { session }
       );
 
-      // Create transaction history with proper date
+      // Create transaction history
       await History.create(
         [
           {
@@ -829,6 +829,21 @@ exports.savingsLock = asyncHandler(async (req, res, next) => {
             reference: `SAV-${Date.now()}`,
             detail: `${duration} savings lock`,
             bank: { name: 'ILE Bank' }
+          }
+        ],
+        { session }
+      );
+
+      // Create notification
+      await Notification.create(
+        [
+          {
+            _user: req.user._id,
+            title: 'Savings Lock Created',
+            message: `You have successfully locked ₦${amount.toLocaleString()} for ${duration}`,
+            action: 'savings',
+            target: savings[0]._id,
+            view: false
           }
         ],
         { session }
