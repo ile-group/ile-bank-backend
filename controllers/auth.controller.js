@@ -38,8 +38,13 @@ exports.register = asyncHandler(async (req, res, next) => {
 
     // Check existing user
     const existingUser = await User.findOne({ email });
-    if (existingUser && existingUser._verify) {
-      return next(new ErrorResponse('Email already registered', 400));
+    if (existingUser) {
+      return next(
+        new ErrorResponse(
+          'Email already exists. Please use a different email address',
+          400
+        )
+      );
     }
 
     // Generate OTP
