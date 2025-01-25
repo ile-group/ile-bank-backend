@@ -63,10 +63,8 @@ const userSchema = new mongoose.Schema(
 
     username: {
       type: String,
-      required: [true, 'Please add a username'],
-      unique: true,
-      trim: true,
-      match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers and underscores']
+      required: [true, 'Please a Username is Required'],
+      trim: true
     },
 
     phone: {
@@ -126,41 +124,22 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Encrypt password using bcrypt
+// Hash password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('password')) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
+  } catch (error) {
+    next(error);
   }
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-
-  if (!this.accountNumber) {
-    // Generate 10-digit account number
-    const prefix = '25'; // Your bank's prefix
-    const random = Math.floor(Math.random() * 100000000)
-      .toString()
-      .padStart(8, '0');
-    this.accountNumber = prefix + random;
-
-    // Ensure uniqueness
-    const exists = await this.constructor.findOne({
-      accountNumber: this.accountNumber
-    });
-    if (exists) {
-      return next(
-        new Error('Account number generation failed, please try again')
-      );
-    }
-  }
-  next();
 });
 
-// Match user entered password to hashed password in database
-userSchema.methods.matchPassword = function (enteredPassword) {
-    console.log('Comparing passwords');
-
-  return bcrypt.compare(enteredPassword, this.password);
+// Method to compare passwords
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Match user entered password to hashed password in database

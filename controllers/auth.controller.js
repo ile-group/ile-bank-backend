@@ -26,21 +26,29 @@ const {
  */
 exports.register = asyncHandler(async (req, res, next) => {
   try {
-    if (!req.body.email) {
-      return next(new ErrorResponse('Email Address Is Required', 403));
+    if (!req.body.email || !req.body.password) {
+      return next(new ErrorResponse('Email and password are required', 403));
     }
     if (!req.body.password) {
       return next(new ErrorResponse('Password Is Required', 403));
     }
+
     const email = req.body.email.toLowerCase();
     const username = req.body.username.toLowerCase();
 
+    // Check existing user
+    const existingUser = await User.findOne({ email });
+    if (existingUser && existingUser._verify) {
+      return next(new ErrorResponse('Email already registered', 400));
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('Generated OTP:', otp);
     // Check for spaces in username
     if (!username || username.includes(' ')) {
       return next(new ErrorResponse('Username cannot contain spaces', 400));
     }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Check if email exists and is verified
     const checkAccount = await User.findOne({
@@ -71,17 +79,21 @@ exports.register = asyncHandler(async (req, res, next) => {
       );
     }
 
-    // Create Profile
+    // Create new user (password will be hashed by schema middleware)
     const authProfile = await User.create({
-      email: email,
-      password: req.body.password,
+      email,
+      password: req.body.password, // Schema middleware will hash this
       name: req.body.name,
-      username: username,
-      device: req.body.device ? req.body.device : null,
+      username,
+      device: req.body.device || null,
       Token: otp,
       TokenExpire: Date.now() + 10 * 60 * 1000
     });
 
+    console.log('User created:', {
+      email: authProfile.email,
+      hashedPassword: authProfile.password
+    });
     // Create an Wallet For Profile
     const wallet = await Wallet.create({
       _user: authProfile._id
@@ -90,13 +102,13 @@ exports.register = asyncHandler(async (req, res, next) => {
     authProfile._wallet = wallet._id;
     await authProfile.save();
 
-    // Send OTP
-    sendEmail({
+    // Send OTP email
+    await sendEmail({
       to: email,
       subject: 'One More Step, Verify Your Email',
       type: 'verification',
       message: {
-        otp: otp,
+        otp,
         name: req.body.name
       }
     });
@@ -106,6 +118,7 @@ exports.register = asyncHandler(async (req, res, next) => {
       message: 'OTP Sent Successfully'
     });
   } catch (error) {
+    console.error('Registration error:', error);
     next(error);
   }
 });
@@ -282,11 +295,11 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   // Validate email & password
   if (!email || !password) {
-    return next(new ErrorResponse('Please provide an email and password', 400));
+    return next(new ErrorResponse('Please provide email and password', 400));
   }
 
-  // Check for user
-  const auth = await User.findOne({ email })
+  // Find user
+  const auth = await User.findOne({ email: email.toLowerCase() })
     .select('+password')
     .populate('_wallet');
 
@@ -294,34 +307,33 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse('Invalid credentials', 401));
   }
 
-  // Check if password matches
-  const isMatch = auth.matchPassword(password);
+  // Compare password using schema method
+  const isMatch = await auth.comparePassword(password);
+  console.log('Password verification:', {
+    email: auth.email,
+    isMatch: isMatch
+  });
 
   if (!isMatch) {
     return next(new ErrorResponse('Invalid credentials', 401));
   }
-  // Verify Email
-  if (auth && !auth._verify) {
+
+  // Check verification
+  if (!auth._verify) {
     return res.status(401).json({
       status: 'error',
-      success: 'false',
-      message: 'Verify Email, Email Is Not Verified',
+      success: false,
+      message: 'Email not verified',
       username: auth.username,
       email: auth.email
     });
   }
+
   if (device) {
     auth.device = device;
-    auth.save();
+    await auth.save();
   }
-  // sendEmail({
-  //   to: email,
-  //   subject: 'One More Step, Verify Your Email',
-  //   type: 'welcome',
-  //   message: {
-  //     name: req.body.name
-  //   }
-  // });
+
   sendTokenResponse(auth, 200, res);
 });
 
