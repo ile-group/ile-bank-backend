@@ -75,8 +75,10 @@ const userSchema = new mongoose.Schema(
 
     pin: {
       type: String,
-      required: [false, 'Pin Must Exist'],
-      default: null
+      required: [true, 'Please add a PIN'],
+      minlength: 4,
+      maxlength: 60,
+      select: false
     },
 
     country_code: {
@@ -172,6 +174,20 @@ userSchema.methods.getSignedJwtToken = function () {
     },
     process.env.JWT_SECRET
   );
+};
+
+// Add PIN hashing middleware
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('pin')) {
+    next();
+  }
+  const salt = await bcrypt.genSalt(10);
+  this.pin = await bcrypt.hash(this.pin, salt);
+});
+
+// Add PIN comparison method
+userSchema.methods.matchTransactionPin = async function (enteredPin) {
+  return await bcrypt.compare(enteredPin, this.pin);
 };
 
 module.exports = mongoose.model('user', userSchema);

@@ -9,10 +9,10 @@ const {
   resendSignUp,
   verifyOTP,
   verifyPassReset,
-  checkUsername
+  checkUsername,
+  createPin
 } = require('../controllers/auth.controller');
 const { protect } = require('../guard/protect.guard');
-
 router.post('/register', register);
 router.get('/logout', logout);
 router.post('/verify/email/send', resendSignUp);
@@ -23,5 +23,5 @@ router.post('/verify/password', verifyPassReset);
 router.post('/login', login);
 router.post('/username', checkUsername);
 router.post('/resend/signup/otp', resendSignUp);
-
+router.post('/create-pin', protect, createPin);
 module.exports = router;

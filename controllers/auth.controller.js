@@ -262,7 +262,8 @@ exports.verifyOTP = asyncHandler(async (req, res, next) => {
       _verify: true,
       Token: null,
       TokenExpire: null,
-      accountNumber: accountNumber
+      accountNumber: accountNumber,
+      pinCreated: false // Add this flag to track PIN creation status
     }
   );
 
@@ -521,5 +522,49 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'password Updated'
+  });
+});
+
+/**
+ * @description Create Transaction PIN
+ * @route `/auth/create-pin`
+ * @access Private (requires authentication)
+ * @type POST
+ */
+exports.createPin = asyncHandler(async (req, res, next) => {
+  const { pin, confirmPin } = req.body;
+
+  // Validate PIN
+  if (!pin || !confirmPin) {
+    return next(new ErrorResponse('Please provide PIN and confirmation', 400));
+  }
+
+  if (pin !== confirmPin) {
+    return next(new ErrorResponse('PINs do not match', 400));
+  }
+
+  if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+    return next(new ErrorResponse('Please provide a valid 4-digit PIN', 400));
+  }
+
+  // Get user
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return next(new ErrorResponse('User not found', 404));
+  }
+
+  if (user.pinCreated) {
+    return next(new ErrorResponse('PIN already created', 400));
+  }
+
+  // Update user with PIN
+  user.pin = pin;
+  user.pinCreated = true;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'PIN created successfully'
   });
 });
