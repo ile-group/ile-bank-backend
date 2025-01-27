@@ -119,12 +119,43 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       sparse: true // Allows null values while maintaining uniqueness
+    },
+
+    chatHistory: [
+      {
+        role: {
+          type: String,
+          enum: ['user', 'assistant'],
+          required: true
+        },
+        content: {
+          type: String,
+          required: true
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+
+    lastAnalysis: {
+      type: mongoose.Schema.Types.Mixed, // This allows for flexible data structure
+      default: null
     }
   },
   {
     timestamps: true
   }
 );
+
+// Add username lowercase middleware here
+userSchema.pre('save', function (next) {
+  if (this.isModified('username')) {
+    this.username = this.username.toLowerCase();
+  }
+  next();
+});
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

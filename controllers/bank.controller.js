@@ -8,16 +8,7 @@ const History = require('../schema/history.schema');
 const { response } = require('express');
 const { method } = require('lodash');
 const sendEmail = require('../mail/index.mail');
-const {
-  TRANSFER_EMAIL_TEMPLATE
-} = require('../mail/template/transaction.template');
-const { DEPOSIT_EMAIL_TEMPLATE } = require('../mail/template/deposit.template');
-const {
-  WITHDRAWAL_EMAIL_TEMPLATE
-} = require('../mail/template/withdraw.template');
-const {
-  BANK_SAVED_EMAIL_TEMPLATE
-} = require('../mail/template/savings.template');
+
 const Notification = require('../schema/notification.schema');
 const mongoose = require('mongoose');
 const axios = require('axios');
